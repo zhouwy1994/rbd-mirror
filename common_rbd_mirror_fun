@@ -89,10 +89,3 @@ function my_exit()
 }
 remote_ipaddr=
 remote_user=
-
-function get_hostname()
-{
-	local res
-	res=$(ssh -o StrictHostKeyChecking=no $remote_usrname@$1 'hostname' 2>&1)
-	echo "$res"
-}

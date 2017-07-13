@@ -36,7 +36,7 @@ eval set -- "${TEMP}"
 pool_name=""
 image_name=""
 remote_ipaddr="" 
-user_name="$remote_usrname"
+user_name="$remote_user"
 fail_msg="create remote backup failed"
 success_msg="create remote backup successfully"
 
