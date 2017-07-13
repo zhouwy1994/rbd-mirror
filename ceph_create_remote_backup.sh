@@ -1,6 +1,6 @@
 #!/bin/bash
 SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $SHELL_DIR/common_rbd_mirror_log
+source $SHELL_DIR/common_rbd_mirror_fun
 
 #set -e
 #set -x
