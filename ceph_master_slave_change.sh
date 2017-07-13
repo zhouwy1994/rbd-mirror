@@ -19,13 +19,20 @@ function destroy_config_file()
 	add_log "INFO" "remote:Delete config file successfully"
 }
 
+function check_rbd_mirror()
+{
+	if ! pidof rbd-mirror &>/dev/null;then
+		sudo rbd-mirror --setuser root --setgroup root -i admin
+	fi
+}
+
 function upgrade_image()
 {
 	pool_total=$(sudo ceph osd pool ls 2>/dev/null)
-	for pool_index in $pool_index
+	for pool_index in $pool_total
 	do
-		image_total=$(sudo ls -p $pool_index 2>/dev/null)
-		for $image_index in $image_total
+		image_total=$(sudo rbd ls -p $pool_index 2>/dev/null)
+		for image_index in $image_total
 		do
 			primary_status=$(sudo rbd info $pool_index/$image_index | grep -E "mirroring primary: "|cut -d' ' -f3 2>/dev/null)
 				if [[ "$primary_status" = "false" ]];then
