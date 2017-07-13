@@ -56,7 +56,8 @@ function check_remote_cluster_ip()
 {
 	local res
 	
-	$(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	$(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || \
+	my_exit 2 "fail_msg" "The remote cluster is unreachable"
 	
 	if ! local res=$(echo "$1"	| egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
 		add_log 
@@ -71,11 +72,7 @@ function check_remote_cluster_ip()
 function check_pool_exist()
 {
 	local res
-    #if ! sshpass -p 'admin' ssh -o StrictHostKeyChecking=no $user_name@$remote_ipaddr 'ceph osd pool ls |\
-	#grep -w $1 &>/dev/null';then
 	if ! sudo ceph osd pool ls --cluster remote | grep -w $1 &>/dev/null;then
-		# sshpass -p 'admin' ssh -o StrictHostKeyChecking=no $user_name@$remote_ipaddr \
-		# "sudo bash $(dirname ${SHELL_DIR})/ceph_create_pool.sh -t replicated -p "$1" -d 5.47397449 -s 2 &>/dev/null"
 		ssh $user_name@$remote_ipaddr \
 		"sudo bash $(dirname ${SHELL_DIR})/ceph_create_pool.sh -t replicated -p "$1" -d 5.47397449 -s 2 &>/dev/null"
 		if [ $? -ne 0 ];then
@@ -174,17 +171,13 @@ function create_backup()
 	add_log "INFO" "remote:Create backup successfully"
 	my_exit 0 "Create remote backup successfully"
 }
-set -x
 err_parameter="error parameter, --pool-name, --image-name or --remote-ipaddr"
 if [ -n "$pool_name" ] && [ -n "$image_name" ] && [ -n "${remote_ipaddr}" ];then
     check_remote_cluster_ip "$remote_ipaddr"
 	check_pool_image_exist "$pool_name" "$image_name"
-	#set -x
 	check_pool_exist "${pool_name}" "$image_name"
-	#set +x
 	create_backup "${pool_name}" "${image_name}"
 else
     add_log "ERROR" "${fail_msg}, ${err_parameter}"
     my_exit 1 "${fail_msg}" "${err_parameter}"
 fi
-set +x
