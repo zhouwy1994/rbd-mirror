@@ -56,13 +56,13 @@ function check_remote_cluster_ip()
 {
 	local res
 	
-	$(y|timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	# $(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
 	if ! local res=$(echo "$1"	| egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
 		add_log 
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
 
-	if ! res=$(timeout 5 ceph -s -m "$1":6789);then
+	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
 		my_exit 1 "$fail_msg" "There is no cluster on the ip"
 	fi
 }
@@ -71,7 +71,7 @@ function check_pool_exist()
 {
 	local ecpool=$(sudo rbd info $1/$2 | grep "data_pool:"|cut -d':' -f2|tr -d ' ')
 	if [ -n "$ecpool" ];then
-		if ! ceph osd pool ls --cluster remote | grep -w "$ecpool" &>/dev/null;then
+		if ! sudo ceph osd pool ls --cluster remote | grep -w "$ecpool" &>/dev/null;then
 			sudo ceph osd erasure-code-profile set ec51 k=3 m=1 plugin=isa technique=reed_sol_van ruleset-failure-domain=osd --cluster remote
 			sudo ceph osd pool create $ecpool 512 erasure ec51 --cluster remote
 			sudo ceph osd pool set $ecpool min_size 3 --cluster remote
@@ -80,8 +80,8 @@ function check_pool_exist()
 	fi
 	
 	local res
-	if ! ceph osd pool ls --cluster remote | grep -w $1 &>/dev/null;then
-		ceph osd pool create $1 128 128 &>/dev/null
+	if ! sudo ceph osd pool ls --cluster remote | grep -w $1 &>/dev/null;then
+		sudo ceph osd pool create $1 128 128 &>/dev/null
 		if [ $? -ne 0 ];then
 			add_log "ERROR" "remote:Create remote pool $1 Failed"
 			my_exit 1 "Create remote pool $1 Failed"
@@ -105,7 +105,7 @@ function check_pool_image_exist()
 {
 	local res 
 	
-	if ! ceph osd pool stats $1 &>/dev/null;then
+	if ! sudo ceph osd pool stats $1 &>/dev/null;then
 		add_log "ERROR" "Local Pools $1 is not exist"
 		my_exit 1 "$fail_msg" "Pools $1 is not exist"
 	fi
@@ -166,12 +166,9 @@ function create_backup()
 		my_exit 1 "Create remote backup Failed" "Enable local image $1/$2 mirror failed"
 	fi
 	
-	# if ! sshpass -p 'admin' ssh -o StrictHostKeyChecking=no $user_name@$remote_ipaddr 'pidof rbd-mirror &>/dev/null';then
 	if ! ssh $user_name@$remote_ipaddr 'pidof rbd-mirror &>/dev/null';then
-		# sshpass -p 'admin' ssh -o StrictHostKeyChecking=no $user_name@$remote_ipaddr \
-		# 'sudo rbd-mirror -d --setuser root --setgroup root -i admin --cluster remote & &>/dev/null'
 		ssh  $user_name@$remote_ipaddr \
-		'sudo rbd-mirror -d --setuser root --setgroup root -i admin --cluster remote & &>/dev/null'
+		'sudo rbd-mirror  --setuser root --setgroup root -i admin --cluster remote & &>/dev/null'
 		if [ $? -eq 0 ];then
 		add_log "INFO" "remote:Start rbd-mirror process successfully"
 		else
@@ -183,15 +180,6 @@ function create_backup()
 	
 	add_log "INFO" "remote:Create backup successfully"
 	my_exit 0 "Create remote backup successfully"
-	# sleep 5
-	
-	# if ! rbd mirror image status $1/$2 --cluster remote &>/dev/null;then
-		# add_log "ERROR" "`hostname`:Create backup Failed"
-		# my_exit 1 "Create remote backup Failed" "unknow error"
-	# else
-		# add_log "ERROR" "remote:Create backup successfully"
-		# my_exit 0 "Create remote backup successfully"
-	# fi
 }
 set -x
 err_parameter="error parameter, --pool-name, --image-name or --remote-ipaddr"

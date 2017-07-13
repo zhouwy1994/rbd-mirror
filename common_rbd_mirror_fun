@@ -94,5 +94,5 @@ function get_hostname()
 	res=$(ssh -o StrictHostKeyChecking=no $remote_user@$1 'hostname' 2>&1)
 	echo "$res"
 }
-remote_ipaddr=192.168.29.219
+remote_ipaddr=192.168.29.77
 remote_user=denali
