@@ -6,7 +6,7 @@ source $SHELL_DIR/common_rbd_mirror_fun
 #set -x
 
 add_log
-add_log "INFO" "`hostname`: upgrade remote image..."
+add_log "INFO" "local: upgrade remote image..."
 add_log "INFO" "$0 $*"
 
 function usage()
@@ -35,8 +35,13 @@ eval set -- "${TEMP}"
 
 pool_name=""
 image_name=""
-remote_ipaddr=""
+cluster_ip="$remote_ipaddr"
 user_name="$remote_user"
+remote_ipaddr=""
+<<<<<<< HEAD
+user_name="$remote_user"
+=======
+>>>>>>> version1.1
 res="" 
 fail_msg="upgrade remote image failed"
 success_msg="upgrade remote image successfully"
@@ -55,13 +60,16 @@ done
 
 function check_remote_cluster_ip()
 {
-	local res
+	# $(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
 	
-	$(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
-	
-	if ! local res=$(echo "$1"	| egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
-		add_log 
+	if ! res=$(echo "$1"| egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
+		add_log "ERROR" "remote ip address is invalid"
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
+	fi
+	
+	if [[ "$cluster_ip" != "$1" ]];then
+		add_log "ERROR" "Specifies that the cluster is not a backup cluster"
+		my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
 	fi
 	
 	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
@@ -69,28 +77,48 @@ function check_remote_cluster_ip()
 	fi
 }
 
-function check_pool_image_exist()
+function check_pool_image_exist_local()
 {
-	local res 
-	
-	if ! sudo ceph osd pool stats $1 &>/dev/null;then
+	if ! sudo ceph osd pool stats $1  --cluster local &>/dev/null;then
 		add_log "ERROR" "Local Pools $1 is not exist"
-		my_exit 1 "$fail_msg" "Pools $1 is not exist"
+		my_exit 1 "$fail_msg" "Local Pools $1 is not exist"
 	fi
 	
-	if ! res=$(sudo rbd info $1/$2 --cluster remote 2>&1);then
+	if ! sudo rbd info $1/$2 --cluster local &>/dev/null;then
 			add_log "ERROR" "Local images $2 is not exist"
 			my_exit 1 "$fail_msg" "Local images $2 is not exis"
 	fi
 }
+
+function check_pool_exist_remote()
+{
+	if ! sudo ceph osd pool ls --cluster remote | grep -w $1 &>/dev/null;then
+			add_log "ERROR" "remote:Remote the pool $1 not exist"
+			my_exit 1 "$fail_msg" "Remote the pool $1 not exist"
+	else
+		if ! sudo rbd info $1/$2 --cluster remote &>/dev/null;then
+			add_log "ERROR" "Remote image $1/$2 not exist"
+			my_exit 1 "$fail_msg" "Remote image $1/$2 not exist"
+		fi
+	fi	
+}
+
 
 function upgrade_remote_image()
 {
 	local mirror_pri_stats_local=""
 	local mirror_pri_stats_remote=""
 	
-	mirror_pri_stats_local=$(sudo rbd info -p $1 $2 --cluster local | grep -E "mirroring primary" | cut -d' ' -f3)
-	mirror_pri_stats_remote=$(sudo rbd info -p $1 $2 --cluster remote | grep -E "mirroring primary" | cut -d' ' -f3)
+	mirror_pri_stats_local=$(sudo rbd info -p $1 $2 --cluster local | grep -E "mirroring primary" | cut -d' ' -f3 2>&1)
+	mirror_pri_stats_remote=$(sudo rbd info -p $1 $2 --cluster remote | grep -E "mirroring primary" | cut -d' ' -f3 2>&1)
+	
+	if [ -z "mirror_pri_stats_local" ];then
+		add_log "ERROR" "Local:Local image is not enable mirror"
+		my_exit 1 "$fail_msg" "Local image is not enable mirror"
+	elif [ -z "mirror_pri_stats_remote" ];then
+		add_log "ERROR" "Remote:Remote image is not enable mirror"
+		my_exit 1 "$fail_msg" "Remote image is not enable mirror"
+	fi
 	
 	if [[ "$mirror_pri_stats_local" = "true" ]];then
 		if [[ "$mirror_pri_stats_remote" = "false" ]];then
@@ -112,7 +140,7 @@ function upgrade_remote_image()
 			fi
 			
 			add_log "INFO" "$success_msg"
-			my_exit 0 "$success_msg" ""
+			my_exit 0 "$success_msg" "primary:remote non-primary:local"
 			# rbd mirror image resync $1/$2 --cluster local
 			# case $? in
 				# 0) add_log "INFO" "local:resync $1/$2 Resynchronizing";my_exit 0 "local:Master and slave switch success";;
@@ -138,7 +166,7 @@ function upgrade_remote_image()
 			esac
 			
 			add_log "INFO" "$success_msg"
-			my_exit 0 "$success_msg" ""
+			my_exit 0 "$success_msg" "primary:remote non-primary:local"
 		fi
 
 	elif [[ "$mirror_pri_stats_local" = "false" ]];then
@@ -167,7 +195,7 @@ function upgrade_remote_image()
 			# esac
 			
 			add_log "INFO" "$success_msg"
-			my_exit 0 "$success_msg" ""
+			my_exit 0 "$success_msg" "primary:local non-primary:remote"
 			
 		elif [[ "$mirror_pri_stats_remote" = "false" ]];then
 			sudo rbd mirror image promote $1/$2 --force --cluster local &>/dev/null
@@ -187,7 +215,7 @@ function upgrade_remote_image()
 			esac
 			
 			add_log "INFO" "$success_msg"
-			my_exit 0 "$success_msg" ""
+			my_exit 0 "$success_msg" "primary:local non-primary:remote"
 		fi
 	fi
 }
@@ -196,7 +224,8 @@ err_parameter="error parameter, --pool-name, --image-name or --remote-ipaddr"
 if [ -n "$pool_name" ] && [ -n "$image_name" ] && [ -n "${remote_ipaddr}" ];then
 #set -x
 	check_remote_cluster_ip "$remote_ipaddr"
-	check_pool_image_exist "$pool_name" "$image_name"
+	check_pool_image_exist_local "$pool_name" "$image_name"
+	check_pool_exist_remote "$pool_name" "$image_name"
 	upgrade_remote_image "$pool_name" "$image_name" "$remote_ipaddr"
 #set +x
 else

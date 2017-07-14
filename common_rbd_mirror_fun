@@ -87,5 +87,11 @@ function my_exit()
 	
 	exit $exit_code
 }
+<<<<<<< HEAD
 remote_ipaddr=
 remote_user=
+=======
+
+remote_ipaddr=192.168.29.77
+remote_user=denali
+>>>>>>> version1.1
