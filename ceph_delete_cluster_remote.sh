@@ -9,7 +9,7 @@ add_log
 add_log "INFO" "$(hostname)(local): Delete remote cluster...."
 add_log "INFO" "$0 $*"
 
-remote_ipaddr=""
+cluster_ip="$remote_ipaddr"
 user_name="$remote_user"
 
 fail_msg="Delete remote cluster failed"
@@ -37,7 +37,7 @@ function usage()
 while true
 do
     case "$1" in
-        -i|--remote-ipaddr) remote_ipaddr=$2; shift 2;;
+        -i|--remote-ipaddr) remote_ip=$2; shift 2;;
         -h|--help) usage; exit 1;;
         --) shift; break;;
         *) echo "Internal error!"; exit 1;;
@@ -50,25 +50,34 @@ function check_remote_cluster_ip()
 {
 	local res
 	
-	$(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) || my_exit 2 "fail_msg" "The remote cluster is unreachable"
-	
-	if ! res=$(echo "$1" | egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
+	if ! res=$(echo "$1" | egrep -o "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b" 2>&1);then
+		add_log "ERROR" "remote ip address is invalid"
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
-
+	
+	# $(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) \
+	# my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	
+	if [[ "$cluster_ip" != "$1" ]];then
+		add_log "ERROR" "Specifies that the cluster is not a backup cluster"
+		my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
+	fi
+	
 	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
+		add_log "ERROR" "There is no cluster on the ip"
 		my_exit 3 "$fail_msg" "There is no cluster on the ip"
 	fi
 }
 
 function kill_rbd_mirror_remote()
 {
-	local res=$(ssh "$user_name"@"$1" 'pidof rbd-mirror | xargs sudo kill -9' 2>&1)
-	local res=$(ssh "$user_name"@"$1" 'pidof rbd-mirror')
+	local res=$(ssh $user_name@$1 'pidof rbd-mirror | xargs sudo kill -9' &>/dev/null)
+	local res=$(ssh $user_name@$1 'pidof rbd-mirror' &>/dev/null)
 	
 	if [ -z "$res" ];then
-		add_log "INFO" "$(get_hostname $remote_ipaddr)(remote):rbd-mirror has been stop"
+		add_log "INFO" "remote:rbd-mirror has been stop"
 	else
+		add_log "ERROR" "remote:remote rbd-mirror stop failed"
 		my_exit 4 "$fail_msg" "remote rbd-mirror stop failed"
 	fi
 }
@@ -101,7 +110,7 @@ function remove_pool_peer()
 
 function destroy_config_file()
 {
-	local res=$(ssh -o StrictHostKeyChecking=no "$user_name"@"$remote_ipaddr" "cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1")
+	local res=$(ssh -o StrictHostKeyChecking=no "$user_name"@"$remote_ip" "cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1")
 
 	local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1)
 	
@@ -112,12 +121,15 @@ function destroy_config_file()
 		my_exit 5 "$fail_msg" "Delete remote config file failed"
 	fi
 
-	if ! res=$(ssh "$user_name"@"$remote_ipaddr" 'sudo ceph -s --cluster local 2>&1');then
+	if ! res=$(ssh "$user_name"@"$remote_ip" 'sudo ceph -s --cluster local 2>&1');then
 		add_log "INFO" "remote:delete local config file successfully"
 	else
 		add_log "ERROR" "remote:Delete local config file failed" 
 		my_exit 5 "$fail_msg" "Delete local config file failed"
 	fi
+	
+	local res=$(sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	local res=$(sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
 	
 	add_log "INFO" "local:Delete remote successfully"
 	my_exit 0 "$success_msg" "The remote cluster has been removed"
@@ -126,10 +138,10 @@ function destroy_config_file()
 
 err_parameter="error parameter, --remote-ipaddr, --help"
 #set -x
-if [ -n "$remote_ipaddr" ];then
-	check_remote_cluster_ip "$remote_ipaddr"
+if [ -n "$remote_ip" ];then
+	check_remote_cluster_ip "$remote_ip"
 	#remove_pool_peer
-	kill_rbd_mirror_remote "$remote_ipaddr"
+	kill_rbd_mirror_remote "$remote_ip"
 	destroy_config_file
 else
 	add_log "ERROR" "${fail_msg}, ${err_parameter}"
