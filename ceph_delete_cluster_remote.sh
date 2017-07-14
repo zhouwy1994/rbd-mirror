@@ -132,7 +132,7 @@ function destroy_config_file()
 	local res=$(sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
 	
 	add_log "INFO" "local:Delete remote successfully"
-	my_exit 0 "$success_msg" "The remote cluster has been removed"
+	my_exit 0 "$success_msg"
 
 }
 
