@@ -9,7 +9,11 @@ add_log
 add_log "INFO" "$(hostname)(local): Delete remote cluster...."
 add_log "INFO" "$0 $*"
 
+<<<<<<< HEAD
 cluster_ip="$remote_ipaddr"
+=======
+remote_ipaddr=""
+>>>>>>> master
 user_name="$remote_user"
 
 fail_msg="Delete remote cluster failed"

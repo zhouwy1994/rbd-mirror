@@ -38,6 +38,10 @@ image_name=""
 cluster_ip="$remote_ipaddr"
 user_name="$remote_user"
 remote_ipaddr=""
+<<<<<<< HEAD
+=======
+user_name="$remote_user"
+>>>>>>> master
 res="" 
 fail_msg="upgrade remote image failed"
 success_msg="upgrade remote image successfully"

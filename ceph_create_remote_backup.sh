@@ -33,8 +33,12 @@ eval set -- "${TEMP}"
 
 pool_name=""
 image_name=""
+<<<<<<< HEAD
 cluster_ip="$remote_ipaddr"
 remote_ip="" 
+=======
+remote_ipaddr="" 
+>>>>>>> master
 user_name="$remote_user"
 fail_msg="create remote backup failed"
 success_msg="Create remote backup successfully"
