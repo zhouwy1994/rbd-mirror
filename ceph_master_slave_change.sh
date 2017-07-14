@@ -61,6 +61,3 @@ function kill_rbd_mirror_remote()
 upgrade_image
 kill_rbd_mirror_remote
 destroy_config_file
-
-
-
