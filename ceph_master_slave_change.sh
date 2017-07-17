@@ -11,20 +11,20 @@ add_log "INFO" "$0 $*"
 fail_msg="master salve change failed"
 success_msg="master salve change successfully"
 
-function destroy_config_file()
-{
-	local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote \
-	$keyring_file_remote $config_file_local $keyring_file_local 2>&1)
+# function destroy_config_file()
+# {
+	# local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote \
+	# $keyring_file_remote $config_file_local $keyring_file_local 2>&1)
 	
-	add_log "INFO" "remote:Delete config file successfully"
-}
+	# add_log "INFO" "remote:Delete config file successfully"
+# }
 
-function check_rbd_mirror()
-{
-	if ! pidof rbd-mirror &>/dev/null;then
-		sudo rbd-mirror --setuser root --setgroup root -i admin
-	fi
-}
+# function check_rbd_mirror()
+# {
+	# if ! pidof rbd-mirror &>/dev/null;then
+		# sudo rbd-mirror --setuser root --setgroup root -i admin
+	# fi
+# }
 
 function upgrade_image()
 {
@@ -39,10 +39,10 @@ function upgrade_image()
 					sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null
 				fi
 				
-				sudo rbd mirror image disable $pool_index/$image_index &>/dev/null
+				# sudo rbd mirror image disable $pool_index/$image_index &>/dev/null
 		done
 		
-		rbd mirror pool disable $pool_index image &>/dev/null
+		# rbd mirror pool disable $pool_index image &>/dev/null
 	done
 }
 
@@ -52,7 +52,7 @@ function kill_rbd_mirror_remote()
 	local res=$(pidof rbd-mirror)
 	
 	if [ -z "$res" ];then
-		add_log "INFO" "$(get_hostname $remote_ipaddr)(remote):rbd-mirror has been stop"
+		add_log "INFO" "rbd-mirror has been stop"
 	else
 		my_exit 4 "$fail_msg" "remote rbd-mirror stop failed"
 	fi
@@ -60,7 +60,7 @@ function kill_rbd_mirror_remote()
 
 upgrade_image
 kill_rbd_mirror_remote
-destroy_config_file
+# destroy_config_file
 
 
 
