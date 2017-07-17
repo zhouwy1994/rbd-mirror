@@ -28,15 +28,17 @@ success_msg="master salve change successfully"
 
 function upgrade_image()
 {
-	pool_total=$(sudo ceph osd pool ls 2>/dev/null)
+	local pool_total=$(sudo ceph osd pool ls 2>/dev/null)
 	for pool_index in $pool_total
 	do
 		image_total=$(sudo rbd ls -p $pool_index 2>/dev/null)
 		for image_index in $image_total
 		do
-			primary_status=$(sudo rbd info $pool_index/$image_index | grep -E "mirroring primary: "|cut -d' ' -f3 2>/dev/null)
+			local primary_status=$(sudo rbd info $pool_index/$image_index | grep -E "mirroring primary: "|cut -d' ' -f3 2>/dev/null)
 				if [[ "$primary_status" = "false" ]];then
-					sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null
+					if ! sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null
+						add_log "ERROR" "promote $1/$2 Failed"
+						my_exit 1 "$fail_msg" "promote $1/$2 Failed"
 				fi
 				
 				# sudo rbd mirror image disable $pool_index/$image_index &>/dev/null
@@ -54,7 +56,7 @@ function kill_rbd_mirror_remote()
 	if [ -z "$res" ];then
 		add_log "INFO" "rbd-mirror has been stop"
 	else
-		my_exit 4 "$fail_msg" "remote rbd-mirror stop failed"
+		my_exit 2 "$fail_msg" "remote rbd-mirror stop failed"
 	fi
 }
 
