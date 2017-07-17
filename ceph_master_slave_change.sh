@@ -36,9 +36,10 @@ function upgrade_image()
 		do
 			local primary_status=$(sudo rbd info $pool_index/$image_index | grep -E "mirroring primary: "|cut -d' ' -f3 2>/dev/null)
 				if [[ "$primary_status" = "false" ]];then
-					if ! sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null
+					if ! sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null;then
 						add_log "ERROR" "promote $1/$2 Failed"
 						my_exit 1 "$fail_msg" "promote $1/$2 Failed"
+					fi
 				fi
 				
 				# sudo rbd mirror image disable $pool_index/$image_index &>/dev/null
@@ -61,7 +62,7 @@ function kill_rbd_mirror_remote()
 }
 
 upgrade_image
-kill_rbd_mirror_remote
+#kill_rbd_mirror_remote
 # destroy_config_file
 
 
