@@ -76,7 +76,7 @@ fi
 err_parameter="error parameter, --pool-name, --image-name "
 if [ -n "$pool_name" ] && [ -n "$image_name" ];then
   set -x
-  run "${pool_name}" "${image_name}" 
+  main "${pool_name}" "${image_name}" 
   #check_pool_exist "${pool_name}"
   set +x
 else

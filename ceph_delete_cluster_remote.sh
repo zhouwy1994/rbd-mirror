@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SHELL_DIR/common_rbd_mirror_fun
@@ -128,8 +128,8 @@ function destroy_config_file()
 		my_exit 5 "$fail_msg" "Delete local config file failed"
 	fi
 	
-	local res=$(sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
-	local res=$(sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	local res=$(sudo sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	local res=$(sudo sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
 	
 	add_log "INFO" "local:Delete remote successfully"
 	my_exit 0 "$success_msg"

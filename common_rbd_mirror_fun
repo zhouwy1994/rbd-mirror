@@ -87,6 +87,8 @@ function my_exit()
 	
 	exit $exit_code
 }
-
+remote_user=denali
+remote_ipaddr=192.168.29.77
+remote_user=denali
 remote_ipaddr=192.168.29.77
 remote_user=denali
