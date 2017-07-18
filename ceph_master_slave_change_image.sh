@@ -35,7 +35,7 @@ eval set -- "${TEMP}"
 
 pool_name=""
 image_name=""
-cluster_ip="$remote_ipaddr"
+# cluster_ip="$remote_ipaddr"
 user_name="$remote_user"
 remote_ipaddr=""
 <<<<<<< HEAD
@@ -67,10 +67,13 @@ function check_remote_cluster_ip()
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
 	
-	if [[ "$cluster_ip" != "$1" ]];then
-		add_log "ERROR" "Specifies that the cluster is not a backup cluster"
-		my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
-	fi
+	timeout 3 ssh $user_name@$1 "pwd" &>/dev/null\
+	||my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	
+	# if [[ "$cluster_ip" != "$1" ]];then
+		# add_log "ERROR" "Specifies that the cluster is not a backup cluster"
+		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
+	# fi
 	
 	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
 		my_exit 3 "$fail_msg" "There is no cluster on the ip"
@@ -94,11 +97,11 @@ function check_pool_exist_remote()
 {
 	if ! sudo ceph osd pool ls --cluster remote | grep -w $1 &>/dev/null;then
 			add_log "ERROR" "remote:Remote the pool $1 not exist"
-			my_exit 1 "$fail_msg" "Remote the pool $1 not exist"
+			my_exit 4 "$fail_msg" "Remote the pool $1 not exist"
 	else
 		if ! sudo rbd info $1/$2 --cluster remote &>/dev/null;then
 			add_log "ERROR" "Remote image $1/$2 not exist"
-			my_exit 1 "$fail_msg" "Remote image $1/$2 not exist"
+			my_exit 4 "$fail_msg" "Remote image $1/$2 not exist"
 		fi
 	fi	
 }
@@ -125,7 +128,7 @@ function upgrade_remote_image()
 			sudo rbd mirror image demote $1/$2 --cluster local &>/dev/null
 			case $? in
 				0) add_log "INFO" "local:demote $1/$2 successfully";;
-				30) add_log "ERROR" "local:demote $1/$2 failed";my_exit 4 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
+				30) add_log "ERROR" "local:demote $1/$2 failed";my_exit 5 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
 				*)add_log "ERROR" "local:demote $1/$2 failed";my_exit 1 "demote $1/$2 failed" "unknown error";;
 			esac
 			
@@ -151,7 +154,7 @@ function upgrade_remote_image()
 			sudo rbd mirror image demote $1/$2 --cluster local &>/dev/null
 			case $? in
 				0) add_log "INFO" "remote:demote $1/$2 successfully";;
-				30) add_log "ERROR" "remote:demote $1/$2 failed";my_exit 4 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
+				30) add_log "ERROR" "remote:demote $1/$2 failed";my_exit 5 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
 				*)add_log "ERROR" "remote:demote $1/$2 failed";my_exit 1 "demote $1/$2 failed" "unknown error";;
 			esac
 			
@@ -174,7 +177,7 @@ function upgrade_remote_image()
 			sudo rbd mirror image demote $1/$2 --cluster remote &>/dev/null
 			case $? in
 				0) add_log "INFO" "remote:demote $1/$2 successfully";;
-				30) add_log "ERROR" "remote:demote $1/$2 failed";my_exit 4 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
+				30) add_log "ERROR" "remote:demote $1/$2 failed";my_exit 5 "demote $1/$2 failed" "$1/$2 exists IO read and write";;
 				*)add_log "ERROR" "remote:demote $1/$2 failed";my_exit 1 "demote $1/$2 failed" "unknown error";;
 			esac
 			
