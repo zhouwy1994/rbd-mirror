@@ -9,13 +9,6 @@ add_log
 add_log "INFO" "$(hostname)(local): Delete remote cluster...."
 add_log "INFO" "$0 $*"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-remote_ipaddr=""
-=======
-cluster_ip="$remote_ipaddr"
->>>>>>> version1.1
-=======
 # cluster_ip="$remote_ipaddr"
 >>>>>>> version1.1
 user_name="$remote_user"
