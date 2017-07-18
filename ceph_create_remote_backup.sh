@@ -80,8 +80,10 @@ function check_pool_exist_remote()
 	local ecpool=$(sudo rbd info $1/$2 | grep "data_pool:"|cut -d':' -f2|tr -d ' ')
 	if [ -n "$ecpool" ];then
 		if ! sudo ceph osd pool ls --cluster remote | grep -w "$ecpool" &>/dev/null;then
+		
 			sudo ceph osd erasure-code-profile set ec51 k=3 m=1 plugin=isa \
 			technique=reed_sol_van ruleset-failure-domain=osd --cluster remote &>/dev/null
+			
 			if ! sudo ceph osd pool create $ecpool 512 erasure ec51 --cluster remote &>/dev/null;then
 				add_log "ERROR" "remote:Create erasure pool $ecpool failed"
 				my_exit 4 "$fail_msg" "Create erasure pool $ecpool failed"
@@ -89,6 +91,7 @@ function check_pool_exist_remote()
 			
 			sudo ceph osd pool set $ecpool min_size 3 --cluster remote &>/dev/null	
  			sudo ceph osd pool set $ecpool allow_ec_overwrites true --cluster remote &>/dev/null
+			
 		fi
 	fi
 	
@@ -100,11 +103,13 @@ function check_pool_exist_remote()
 		else
 			add_log "INFO" "remote:Create remote pool $1 Successfully!!"
 		fi
+		
 	else
 		if sudo rbd info $1/$2 --cluster remote &>/dev/null;then
 			add_log "ERROR" "remote images already exist"
 			my_exit 5 "$fail_msg" "Remote images already exist"
 		fi
+		
 	fi	
 }
 

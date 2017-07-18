@@ -2,6 +2,12 @@
 SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SHELL_DIR/common_rbd_mirror_fun
 
+[ -e $local_log_file ] ||\
+{
+	sudo touch $local_log_file
+	sudo chmod 777 $$local_log_file
+}
+
 set -e
 
 add_log
@@ -36,10 +42,12 @@ function upgrade_image()
 		do
 			local primary_status=$(sudo rbd info $pool_index/$image_index | grep -E "mirroring primary: "|cut -d' ' -f3 2>/dev/null)
 				if [[ "$primary_status" = "false" ]];then
-					if ! sudo rbd mirror image promote $pool_index/$image_index --force --cluster remote &>/dev/null;then
-						add_log "ERROR" "promote $1/$2 Failed"
-						my_exit 1 "$fail_msg" "promote $1/$2 Failed"
+					if ! sudo rbd mirror image promote $pool_index/$image_index --force &>/dev/null;then
+						add_log "ERROR" "promote $pool_index/$image_index Failed"
+						my_exit 1 "$fail_msg" "promote $pool_index/$image_index Failed"
 					fi
+					
+					add_log "INFO" "promote $pool_index/$image_index successfully"
 				fi
 				
 				# sudo rbd mirror image disable $pool_index/$image_index &>/dev/null
@@ -47,6 +55,9 @@ function upgrade_image()
 		
 		# rbd mirror pool disable $pool_index image &>/dev/null
 	done
+	
+	add_log "INFO" "$success_msg"
+	my_exit 0 "$success_msg"
 }
 
 function kill_rbd_mirror_remote()
