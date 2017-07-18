@@ -32,8 +32,8 @@ function usage () {
 while true
 do
 	case "$1" in
-	-i | --ip)  sed -i '/remote_ipaddr=/d' ./common_rbd_mirror_fun ;echo "remote_ipaddr=$2" >> ./common_rbd_mirror_fun ;shift 2;;
-	-n | --name) sed -i '/remote_user=/d' ./common_rbd_mirror_fun ; echo "remote_user=$2" >> ./common_rbd_mirror_fun  ;shift 2;;
+	-i | --ip)  echo "remote_ipaddr=$2">> ./common_rbd_mirror_fun;shift 2;;
+	-n | --name) echo "remote_user=$2" >> ./common_rbd_mirror_fun;shift 2;;
 	-p | --passwd) remote_passwd=$2; shift 2;;
 	-h | --help) usage ; exit 1;;
 	--) shift; break;;

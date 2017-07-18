@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SHELL_DIR/common_rbd_mirror_fun
@@ -10,9 +10,13 @@ add_log "INFO" "$(hostname)(local): Delete remote cluster...."
 add_log "INFO" "$0 $*"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 remote_ipaddr=""
 =======
 cluster_ip="$remote_ipaddr"
+>>>>>>> version1.1
+=======
+# cluster_ip="$remote_ipaddr"
 >>>>>>> version1.1
 user_name="$remote_user"
 
@@ -59,13 +63,13 @@ function check_remote_cluster_ip()
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
 	
-	# $(timeout 5 ssh -o StrictHostKeyChecking=no "$user_name"@"$1" 'exit' &>/dev/null) \
-	# my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	timeout 3 ssh $user_name@$1 "pwd" &>/dev/null\
+	||my_exit 2 "fail_msg" "The remote cluster is unreachable"
 	
-	if [[ "$cluster_ip" != "$1" ]];then
-		add_log "ERROR" "Specifies that the cluster is not a backup cluster"
-		my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
-	fi
+	# if [[ "$cluster_ip" != "$1" ]];then
+		# add_log "ERROR" "Specifies that the cluster is not a backup cluster"
+		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
+	# fi
 	
 	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
 		add_log "ERROR" "There is no cluster on the ip"
@@ -132,8 +136,8 @@ function destroy_config_file()
 		my_exit 5 "$fail_msg" "Delete local config file failed"
 	fi
 	
-	local res=$(sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
-	local res=$(sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	local res=$(sudo sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	local res=$(sudo sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
 	
 	add_log "INFO" "local:Delete remote successfully"
 	my_exit 0 "$success_msg"
