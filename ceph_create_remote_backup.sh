@@ -33,7 +33,7 @@ eval set -- "${TEMP}"
 
 pool_name=""
 image_name=""
-cluster_ip="$remote_ipaddr"
+# cluster_ip="$remote_ipaddr"
 remote_ip="" 
 user_name="$remote_user"
 fail_msg="Create remote backup failed"
@@ -61,10 +61,13 @@ function check_remote_cluster_ip()
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
 	
-	if [[ "$cluster_ip" != "$1" ]];then
-		add_log "ERROR" "Specifies that the cluster is not a backup cluster"
-		my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
-	fi
+	timeout 3 ssh $user_name@$1 "pwd" &>/dev/null\
+	||my_exit 2 "fail_msg" "The remote cluster is unreachable"
+	
+	# if [[ "$cluster_ip" != "$1" ]];then
+		# add_log "ERROR" "Specifies that the cluster is not a backup cluster"
+		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
+	# fi
 	
 	if ! sudo timeout 5 ceph -s -m "$1":6789 &>/dev/null;then
 		add_log "ERROR" "There is no cluster on the ip"
