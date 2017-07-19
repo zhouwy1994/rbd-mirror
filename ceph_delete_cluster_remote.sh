@@ -9,9 +9,7 @@ add_log
 add_log "INFO" "$(hostname)(local): Delete remote cluster...."
 add_log "INFO" "$0 $*"
 
-# cluster_ip="$remote_ipaddr"
->>>>>>> version1.1
-user_name="$remote_user"
+user_name="denali"
 
 fail_msg="Delete remote cluster failed"
 success_msg="Delete remote cluster successfully."
@@ -45,7 +43,19 @@ do
     esac
 done
 
+function check_remote_leader()
+{
+	readonly all_quorum_ip_local=$(sudo ceph -s --cluster local 2>/dev/null\
+	| egrep -o "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b")
 
+	readonly all_quorum_ip_remote=$(sudo ceph -s --cluster remote  2>/dev/null\
+	| egrep -o "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b")
+	
+	readonly remote_leader_hostname=$(sudo ceph quorum_status --cluster remote 2>/dev/null\
+	| sed s/.*quorum_leader_name\":\"//g|sed s/\".*$//g)
+	readonly remote_leader_ipaddr=$(sudo ceph quorum_status  --cluster remote 2>/dev/null\
+	| sed s/^.*\"$remote_leader_hostname\",\"addr\":\"//g|sed s/:.*$//g)
+}
 
 function check_remote_cluster_ip()
 {
@@ -56,13 +66,10 @@ function check_remote_cluster_ip()
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
 	
-	timeout 3 ssh $user_name@$1 "pwd" &>/dev/null\
-	||my_exit 2 "fail_msg" "The remote cluster is unreachable"
-	
-	# if [[ "$cluster_ip" != "$1" ]];then
-		# add_log "ERROR" "Specifies that the cluster is not a backup cluster"
-		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
-	# fi
+	if [[ "$1" != "$remote_leader_ipaddr" ]];then
+		add_log "ERROR" "The remote cluster is unreachable"
+		my_exit 2 "$fail_msg" "The remote cluster is unreachable"
+	fi
 	
 	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
 		add_log "ERROR" "There is no cluster on the ip"
@@ -111,9 +118,18 @@ function remove_pool_peer()
 
 function destroy_config_file()
 {
-	local res=$(ssh -o StrictHostKeyChecking=no "$user_name"@"$remote_ip" "cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1")
-
-	local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1)
+	#Delete remote node config file
+	for remote_ip_index in $all_quorum_ip_remote
+	do
+		local res=$(ssh $user_name@$remote_ip_index "cd "$config_file_dir_remote" && sudo \
+		rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local 2>&1")
+	done
+	
+	#Delete remote node config file
+	ansible cluster -m shell -s -a "cd "$config_file_dir_remote" && sudo \
+	rm $config_file_remote $keyring_file_remote $config_file_local $keyring_file_local" &>/dev/null
+	# local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote $keyring_file_remote \
+	# $config_file_local $keyring_file_local 2>&1)
 	
 	if ! res=$(sudo ceph -s --cluster remote 2>&1);then
 		add_log "INFO" "$(hostname)(local):Delete remote config file successfully"
@@ -129,8 +145,8 @@ function destroy_config_file()
 		my_exit 5 "$fail_msg" "Delete local config file failed"
 	fi
 	
-	local res=$(sudo sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
-	local res=$(sudo sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	# local res=$(sudo sed -i '/remote_ipaddr.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
+	# local res=$(sudo sed -i '/remote_user.*/d' $SHELL_DIR/common_rbd_mirror_fun 2>&1)
 	
 	add_log "INFO" "local:Delete remote successfully"
 	my_exit 0 "$success_msg"
@@ -138,8 +154,9 @@ function destroy_config_file()
 }
 
 err_parameter="error parameter, --remote-ipaddr, --help"
-#set -x
+# set -x
 if [ -n "$remote_ip" ];then
+	check_remote_leader
 	check_remote_cluster_ip "$remote_ip"
 	#remove_pool_peer
 	kill_rbd_mirror_remote "$remote_ip"
@@ -148,4 +165,4 @@ else
 	add_log "ERROR" "${fail_msg}, ${err_parameter}"
 	my_exit 1 "$fail_msg" "$err_parameter"
 fi
-#set +x
+# set +x

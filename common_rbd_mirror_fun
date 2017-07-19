@@ -5,36 +5,52 @@ then
         SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 fi
 
-ceph_dir=/var/lib/ceph
-osd_data_dir=$ceph_dir/osd
-osd_data_base="ceph"
-mon_dir=$ceph_dir/mon
-rgw_dir=$ceph_dir/radosgw
+readonly ceph_dir=/var/lib/ceph
+readonly osd_data_dir=$ceph_dir/osd
+readonly osd_data_base="ceph"
+readonly mon_dir=$ceph_dir/mon
+readonly rgw_dir=$ceph_dir/radosgw
 
-config_file_local="local.conf"
-config_file_remote="remote.conf"
-config_file_dir_local="/etc/ceph"
-config_file_dir_remote="/etc/ceph"
-keyring_file_local="local.client.admin.keyring"
-keyring_file_remote="remote.client.admin.keyring"
+readonly config_file_local="local.conf"
+readonly config_file_remote="remote.conf"
+readonly config_file_dir_local="/etc/ceph"
+readonly config_file_dir_remote="/etc/ceph"
+readonly keyring_file_local="local.client.admin.keyring"
+readonly keyring_file_remote="remote.client.admin.keyring"
 
-conf_dir=/etc/ceph
-ceph_conf=$conf_dir/ceph.conf
-tmp_dir=/tmp
-remote_tmp_dir=$tmp_dir/create_cluster
+readonly conf_dir=/etc/ceph
+readonly ceph_conf=$conf_dir/ceph.conf
+readonly tmp_dir=/tmp
+readonly remote_tmp_dir=$tmp_dir/create_cluster
 mkdir -p $remote_tmp_dir
 
 #ceph log dir
-ceph_log_dir=/var/log/ceph 
+readonly ceph_log_dir=/var/log/ceph 
 mkdir -p $ceph_log_dir
-log_file_name="ceph_rbd_mirror.log"
-local_log_file=$ceph_log_dir/$log_file_name
-remote_log_file=$ceph_log_dir/$log_file_name
-local_ip=$(ifconfig eth1 | grep -E -o "inet addr:([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}"|cut -d':' -f2)
+readonly log_file_name="ceph_rbd_mirror.log"
+readonly local_log_file=$ceph_log_dir/$log_file_name
+readonly remote_log_file=$ceph_log_dir/$log_file_name
+readonly local_ip=$(ifconfig eth1 | grep -E -o "inet addr:([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}"|cut -d':' -f2)
 print_log=${print_log:-"yes"}
 ECHO="echo -e"
 SEG="\n"
 
+
+# readonly all_quorum_ip_local=$(sudo ceph -s --cluster local\
+# | egrep -o "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b" 2>/dev/null)
+
+# readonly all_quorum_ip_remote=$(sudo ceph -s --cluster remote\
+# | egrep -o "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b" 2>/dev/null)
+
+# readonly local_leader_hostname=$(sudo ceph quorum_status --cluster local \
+# | sed s/.*quorum_leader_name\":\"//g|sed s/\".*$//g 2>/dev/null)
+# readonly local_leader_ipaddr=$(sudo ceph quorum_status  --cluster local \
+# | sed s/^.*\"$local_leader_hostname\",\"addr\":\"//g|sed s/:.*$//g 2>/dev/null)
+
+# readonly remote_leader_hostname=$(sudo ceph quorum_status --cluster remote \
+# | sed s/.*quorum_leader_name\":\"//g|sed s/\".*$//g 2>/dev/null)
+# readonly remote_leader_ipaddr=$(sudo ceph quorum_status  --cluster remote \
+# | sed s/^.*\"$remote_leader_hostname\",\"addr\":\"//g|sed s/:.*$//g 2>/dev/null)
 
 #1st param: level(ERROR, WARNING, INFO)
 #2nd param: detail info
