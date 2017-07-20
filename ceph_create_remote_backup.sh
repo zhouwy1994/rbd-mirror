@@ -79,8 +79,8 @@ function check_remote_cluster_ip()
 	
 	
 	if ! sudo timeout 3 ceph -s -m "$1":6789 &>/dev/null;then
-		add_log "ERROR" "There is no cluster on the ip"
-		my_exit 3 "$fail_msg" "There is no cluster on the ip"
+		add_log "ERROR" "There is no cluster on the $1"
+		my_exit 3 "$fail_msg" "There is no cluster on the $1"
 	fi
 }
 
