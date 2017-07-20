@@ -17,6 +17,32 @@ add_log "INFO" "$0 $*"
 fail_msg="master salve change failed"
 success_msg="master salve change successfully"
 
+TEMP=`getopt -o h --long help -n 'note' -- "$@"`
+if [ $? != 0 ]; then
+    echo "parse arguments failed."
+    exit 1
+fi
+
+eval set -- "${TEMP}"
+
+function usage()
+{
+        echo "Usage:[-h|--help]"
+		echo -e "\t\tThe script is recommended for execution at the remote node"
+		
+        echo "[-h, --help]"
+        echo -e "\t\thelp info"
+}
+
+while true
+do
+    case "$1" in
+        -h|--help) usage; exit 1;;
+        --) shift; break;;
+        *) echo "Internal error!"; exit 1;;
+    esac
+done
+
 # function destroy_config_file()
 # {
 	# local res=$(cd "$config_file_dir_remote" && sudo rm $config_file_remote \
