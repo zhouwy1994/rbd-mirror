@@ -71,7 +71,7 @@ function check_remote_cluster_ip()
 		my_exit 2 "$fail_msg" "The remote cluster is unreachable"
 	fi
 	
-	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
+	if ! res=$(sudo timeout 3 ceph -s -m "$1":6789 2>&1);then
 		add_log "ERROR" "There is no cluster on the ip"
 		my_exit 3 "$fail_msg" "There is no cluster on the ip"
 	fi

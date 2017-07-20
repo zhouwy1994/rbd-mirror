@@ -64,7 +64,7 @@ function check_remote_leader()
 
 function check_remote_cluster_ip()
 {
-	if ! res=$(echo "$1"| egrep "([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}" 2>&1);then
+	if ! res=$(echo "$1"| egrep "\b([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}\b" 2>&1);then
 		add_log "ERROR" "remote ip address is invalid"
 		my_exit 1 "$fail_msg" "remote ip address is invalid"
 	fi
@@ -82,7 +82,7 @@ function check_remote_cluster_ip()
 		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
 	# fi
 	
-	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789);then
+	if ! res=$(sudo timeout 3 ceph -s -m "$1":6789 2>&1);then
 		my_exit 3 "$fail_msg" "There is no cluster on the ip"
 	fi
 }
@@ -135,6 +135,7 @@ function check_pool_exist_remote()
 				add_log "ERROR" "Remote image $1/$2 not exist"
 				my_exit 4 "$fail_msg" "Remote image $1/$2 not exist"
 			fi
+		fi
 	fi	
 }
 
@@ -171,15 +172,15 @@ function upgrade_remote_image()
 				0) add_log "INFO" "local:demote $tmp_pool_name/$2 successfully";;
 				30) add_log "ERROR" "local:demote $tmp_pool_name/$2 failed";my_exit 5 "demote \
 				$tmp_pool_name/$2 failed" "$tmp_pool_name/$2 exists IO read and write";;
-				*)add_log "ERROR" "local:demote $tmp_pool_name/$2 failed";my_exit 1 "demote \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "local:demote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "demote local \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			sudo rbd mirror image promote $tmp_pool_name/$2 --force --cluster remote &>/dev/null
 				case $? in
 				0) add_log "INFO" "remote:promote $tmp_pool_name/$2 successfully";;
-				*)add_log "ERROR" "remote:promote $tmp_pool_name/$2 failed";my_exit 1 "promote \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "remote:promote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "promote remote \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			if ! pidof rbd-mirror &>/dev/null;then
@@ -191,9 +192,9 @@ function upgrade_remote_image()
 			# rbd mirror image resync $tmp_pool_name/$2 --cluster local
 			# case $? in
 				# 0) add_log "INFO" "local:resync $tmp_pool_name/$2 Resynchronizing";\
-				my_exit 0 "local:Master and slave switch success";;
+				# my_exit 0 "local:Master and slave switch success";;
 				# *)add_log "ERROR" "local:resync $tmp_pool_name/$2 failed";my_exit 1 \
-				"resync $tmp_pool_name/$2 failed" "unknown error";;
+				# "resync $tmp_pool_name/$2 failed" "unknown error";;
 			# esac
 			
 		elif [[ "$mirror_pri_stats_remote" = "true" ]];then
@@ -202,8 +203,8 @@ function upgrade_remote_image()
 				0) add_log "INFO" "remote:demote $tmp_pool_name/$2 successfully";;
 				30) add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 5 \
 				"demote $tmp_pool_name/$2 failed" "$tmp_pool_name/$2 exists IO read and write";;
-				*)add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 1 "demote $tmp_pool_name/\
-				$2 failed" "unknown error";;
+				*)add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "demote local $tmp_pool_name/\
+				$2 failed";;
 			esac
 			
 			if ! pidof rbd-mirror &>/dev/null;then
@@ -214,8 +215,8 @@ function upgrade_remote_image()
 				case $? in
 				0) add_log "INFO" "local:resync $tmp_pool_name/$2 Resynchronizing";my_exit 0 \
 				"local:Master and slave switch success";;
-				*)add_log "ERROR" "local:resync $tmp_pool_name/$2 failed";my_exit 1 "resync \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "local:resync $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "resync local \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			add_log "INFO" "$success_msg"
@@ -229,15 +230,15 @@ function upgrade_remote_image()
 				0) add_log "INFO" "remote:demote $tmp_pool_name/$2 successfully";;
 				30) add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 5 "demote \
 				$tmp_pool_name/$2 failed" "$tmp_pool_name/$2 exists IO read and write";;
-				*)add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 1 "demote \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "remote:demote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "demote remote \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			sudo rbd mirror image promote $tmp_pool_name/$2 --force --cluster local &>/dev/null
 			case $? in
 				0) add_log "INFO" "local:promote $tmp_pool_name/$2 successfully";;
-				*)add_log "ERROR" "local:promote $tmp_pool_name/$2 failed";my_exit 1 "promote \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "local:promote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "promote local \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			if ! ssh $user_name@$3 'pidof rbd-mirror &>/dev/null';then
@@ -247,9 +248,9 @@ function upgrade_remote_image()
 			# rbd mirror image resync $tmp_pool_name/$2 --cluster remote
 			# case $? in
 				# 0) add_log "INFO" "remote:resync $tmp_pool_name/$2 Resynchronizing";my_exit 0 "local\
-				:Master and slave switch success";;
+				#:Master and slave switch success";;
 				# *)add_log "ERROR" "remote:resync $tmp_pool_name/$2 failed";my_exit 1 "resync \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				#$tmp_pool_name/$2 failed" "unknown error";;
 			# esac
 			
 			add_log "INFO" "$success_msg"
@@ -259,8 +260,8 @@ function upgrade_remote_image()
 			sudo rbd mirror image promote $tmp_pool_name/$2 --force --cluster local &>/dev/null
 			case $? in
 				0) add_log "INFO" "local:promote $tmp_pool_name/$2 successfully";;
-				*)add_log "ERROR" "local:promote $tmp_pool_name/$2 failed";my_exit 1 "promote \
-				$tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "local:promote $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" "promote local \
+				$tmp_pool_name/$2 failed";;
 			esac
 			
 			if ! ssh $user_name@$3 'pidof rbd-mirror &>/dev/null';then
@@ -271,8 +272,8 @@ function upgrade_remote_image()
 			case $? in
 				0) add_log "INFO" "remote:resync $tmp_pool_name/$2 Resynchronizing";\
 				my_exit 0 "local:Master and slave switch success";;
-				*)add_log "ERROR" "remote:resync $tmp_pool_name/$2 failed";my_exit 1 \
-				"resync $tmp_pool_name/$2 failed" "unknown error";;
+				*)add_log "ERROR" "remote:resync $tmp_pool_name/$2 failed";my_exit 1 "$fail_msg" \
+				"resync remote $tmp_pool_name/$2 failed";;
 			esac
 			
 			add_log "INFO" "$success_msg"
@@ -283,15 +284,13 @@ function upgrade_remote_image()
 
 err_parameter="error parameter, --pool-name, --image-name or --remote-ipaddr"
 if [ -n "$pool_name" ] && [ -n "$image_name" ] && [ -n "${remote_ipaddr}" ];then
-#set -x
-	check_remote_leader
-	check_remote_cluster_ip "$remote_ipaddr"
-	check_ec_pool "$pool_name"
-	check_pool_image_exist_local "$pool_name" "$image_name"
-	check_pool_exist_remote "$pool_name" "$image_name"
-	upgrade_remote_image "$pool_name" "$image_name" "$remote_ipaddr"
-#set +x
+	  check_remote_leader
+	  check_remote_cluster_ip "$remote_ipaddr"
+	  check_ec_pool "$pool_name"
+	  check_pool_image_exist_local "$pool_name" "$image_name"
+	  check_pool_exist_remote "$pool_name" "$image_name"
+	  upgrade_remote_image "$pool_name" "$image_name" "$remote_ipaddr"
 else
-    add_log "ERROR" "${fail_msg}, ${err_parameter}" $print_log
+    add_log "ERROR" "${fail_msg}" "${err_parameter}"
     my_exit 1 "${fail_msg}" "${err_parameter}"
 fi

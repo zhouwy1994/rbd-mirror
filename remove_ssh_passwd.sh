@@ -36,10 +36,12 @@ function usage()
         echo "Usage:-i|--remote-ipaddr | [-h|--help]"
        
         echo "-i, --remote-ipaddr <cluster ipaddr>"
-        echo -e "\t\cluster ipaddress."
+        echo -e "\t\tcluster ipaddress."
 
         echo "[-h, --help]"
         echo -e "\t\thelp info"
+		
+		echo -e "eg:bash remove_ssh_passwd.sh -i 192.1.1.1 -i 192.1.1.2 -i 192.1.1.3"
 }
 
 function check_remote_cluster_ip()
@@ -62,7 +64,7 @@ function check_remote_cluster_ip()
 		# my_exit 2 "$fail_msg" "Specifies that the cluster is not a backup cluster"
 	# fi
 	
-	if ! res=$(sudo timeout 5 ceph -s -m "$1":6789 2>/dev/null);then
+	if ! res=$(sudo timeout 3 ceph -s -m "$1":6789 2>/dev/null);then
 		my_exit 2 "$fail_msg" "There is no cluster on the ip"
 	fi
 }
